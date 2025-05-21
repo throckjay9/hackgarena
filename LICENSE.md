@@ -1,211 +1,165 @@
-local player = game.Players.LocalPlayer
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
-local RS = game:GetService("RunService")
-local camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
 
--- Criar GUI
-local gui = Instance.new("ScreenGui", player:WaitForChild("PlayerGui"))
-gui.Name = "FFH4XPanel"
+-- GUI
+local gui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+gui.Name = "FFH4X_GUI"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true
-gui.DisplayOrder = 1000 -- sobrepõe tudo
+gui.DisplayOrder = 9999
 
--- Frame principal
 local frame = Instance.new("Frame", gui)
-frame.Size = UDim2.new(0, 280, 0, 400)
-frame.Position = UDim2.new(0.5, -140, 0.5, -200)
-frame.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+frame.Size = UDim2.new(0, 250, 0, 180)
+frame.Position = UDim2.new(0.5, -125, 0.5, -90)
+frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
 frame.BorderSizePixel = 0
 frame.Visible = false
-frame.ZIndex = 10
+frame.Active = true
+frame.Draggable = true -- Arrastável
 
--- Cabeçalho arrastável
-local header = Instance.new("TextLabel", frame)
-header.Size = UDim2.new(1, 0, 0, 30)
-header.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
-header.Text = "FFH4X Dev Panel"
-header.TextColor3 = Color3.fromRGB(255, 255, 0)
-header.Font = Enum.Font.GothamBold
-header.TextSize = 16
-header.ZIndex = 11
+local title = Instance.new("TextLabel", frame)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Text = "FFH4X Panel"
+title.TextColor3 = Color3.new(1, 1, 0)
+title.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 16
 
--- Criar botão
-local function createButton(name, y)
+-- Função para botão
+local function createButton(name, posY)
 	local btn = Instance.new("TextButton", frame)
 	btn.Size = UDim2.new(1, -20, 0, 30)
-	btn.Position = UDim2.new(0, 10, 0, y)
-	btn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-	btn.TextColor3 = Color3.fromRGB(0, 255, 0)
-	btn.Text = name
+	btn.Position = UDim2.new(0, 10, 0, posY)
+	btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	btn.TextColor3 = Color3.new(0, 1, 0)
 	btn.Font = Enum.Font.GothamBold
 	btn.TextSize = 14
-	btn.ZIndex = 12
+	btn.Text = name
 	return btn
 end
 
--- Botões
-local funcs = {"Aimbot", "ESP", "Teleport", "Speed", "Jump", "Fly", "Gravity", "Heal"}
-local buttons = {}
+local aimbotOn, espBoxOn, espLineOn, speedOn = false, false, false, false
 
-for i, name in ipairs(funcs) do
-	buttons[name] = createButton(name, 35 + (i - 1) * 35)
-end
+local btnAimbot = createButton("Aimbot (100% HS)", 40)
+local btnESPBox = createButton("ESP Box", 75)
+local btnESPLine = createButton("ESP Line", 110)
+local btnSpeed = createButton("Speed 90%", 145)
 
--- Toggle com Q
+-- Alternar visibilidade com Q
 UIS.InputBegan:Connect(function(input, gpe)
 	if not gpe and input.KeyCode == Enum.KeyCode.Q then
 		frame.Visible = not frame.Visible
 	end
 end)
 
--- Arrastar
-local dragging, dragInput, dragStart, startPos
-
-local function update(input)
-	local delta = input.Position - dragStart
-	frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-end
-
-header.InputBegan:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseButton1 then
-		dragging = true
-		dragStart = input.Position
-		startPos = frame.Position
-
-		input.Changed:Connect(function()
-			if input.UserInputState == Enum.UserInputState.End then
-				dragging = false
-			end
-		end)
-	end
-end)
-
-header.InputChanged:Connect(function(input)
-	if input.UserInputType == Enum.UserInputType.MouseMovement then
-		dragInput = input
-	end
-end)
-
-UIS.InputChanged:Connect(function(input)
-	if dragging and input == dragInput then
-		update(input)
-	end
-end)
-
--- Funções
-local function getRoot()
-	return player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-end
-
-local function getHum()
-	return player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-end
-
 -- Aimbot
-local function aimbot()
-	local closest, dist = nil, math.huge
-	for _, plr in pairs(game.Players:GetPlayers()) do
-		if plr ~= player and plr.Character and plr.Character:FindFirstChild("Head") then
-			local head = plr.Character.Head
-			local d = (head.Position - camera.CFrame.Position).Magnitude
-			if d < dist then
-				dist = d
+RunService.RenderStepped:Connect(function()
+	if not aimbotOn then return end
+
+	local closest, distance = nil, math.huge
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+			local head = p.Character.Head
+			local dist = (head.Position - Camera.CFrame.Position).Magnitude
+			if dist < distance then
+				distance = dist
 				closest = head
 			end
 		end
 	end
 	if closest then
-		camera.CFrame = CFrame.new(camera.CFrame.Position, closest.Position)
+		Camera.CFrame = CFrame.new(Camera.CFrame.Position, closest.Position)
 	end
-end
+end)
 
--- ESP
-local function esp()
-	for _, plr in pairs(game.Players:GetPlayers()) do
-		if plr ~= player and plr.Character and not plr.Character:FindFirstChild("ESPHighlight") then
-			local h = Instance.new("Highlight")
-			h.Name = "ESPHighlight"
-			h.FillColor = Color3.fromRGB(255, 0, 0)
-			h.OutlineColor = Color3.fromRGB(255, 255, 255)
-			h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-			h.Parent = plr.Character
+-- ESP Box
+local function updateESPBoxes()
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer and p.Character and not p.Character:FindFirstChild("ESPBox") then
+			local adorn = Instance.new("BoxHandleAdornment")
+			adorn.Name = "ESPBox"
+			adorn.Adornee = p.Character
+			adorn.Size = Vector3.new(4, 6, 2)
+			adorn.AlwaysOnTop = true
+			adorn.ZIndex = 10
+			adorn.Color3 = Color3.new(1, 0, 0)
+			adorn.Transparency = 0.5
+			adorn.Parent = p.Character
 		end
 	end
 end
 
--- Teleport
-local function teleport()
-	local root = getRoot()
-	if root then
-		root.CFrame = CFrame.new(150, 15, 150)
+-- ESP Line
+local lines = {}
+
+local function clearLines()
+	for _, line in ipairs(lines) do
+		line:Destroy()
 	end
+	lines = {}
 end
 
--- Speed
-local function speed()
-	local hum = getHum()
-	if hum then
-		hum.WalkSpeed = 100
-	end
-end
-
--- Jump
-local function jump()
-	local hum = getHum()
-	if hum then
-		hum.JumpPower = 150
-	end
-end
-
--- Fly
-local flying = false
-local bv
-
-local function fly()
-	local root = getRoot()
-	if not root then return end
-	if not flying then
-		bv = Instance.new("BodyVelocity")
-		bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-		bv.Velocity = Vector3.zero
-		bv.Parent = root
-		flying = true
-	else
-		if bv then bv:Destroy() end
-		flying = false
-	end
-end
-
-RS.RenderStepped:Connect(function()
-	if flying and bv then
-		local dir = Vector3.zero
-		if UIS:IsKeyDown(Enum.KeyCode.W) then dir += camera.CFrame.LookVector end
-		if UIS:IsKeyDown(Enum.KeyCode.S) then dir -= camera.CFrame.LookVector end
-		if UIS:IsKeyDown(Enum.KeyCode.Space) then dir += Vector3.new(0, 1, 0) end
-		if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then dir -= Vector3.new(0, 1, 0) end
-		bv.Velocity = dir * 50
+RunService.RenderStepped:Connect(function()
+	if not espLineOn then return end
+	clearLines()
+	for _, p in pairs(Players:GetPlayers()) do
+		if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+			local line = Drawing.new("Line")
+			line.Color = Color3.fromRGB(255, 0, 0)
+			line.Thickness = 2
+			line.From = Vector2.new(Camera.ViewportSize.X/2, Camera.ViewportSize.Y)
+			local pos, onScreen = Camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+			if onScreen then
+				line.To = Vector2.new(pos.X, pos.Y)
+				line.Visible = true
+				table.insert(lines, line)
+			else
+				line:Remove()
+			end
+		end
 	end
 end)
 
--- Gravity
-local function gravity()
-	workspace.Gravity = 40
-end
-
--- Heal
-local function heal()
-	local hum = getHum()
-	if hum then
-		hum.Health = hum.MaxHealth
+-- Speed
+RunService.RenderStepped:Connect(function()
+	if speedOn and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+		LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 90
 	end
-end
+end)
 
--- Conectar botões
-buttons.Aimbot.MouseButton1Click:Connect(aimbot)
-buttons.ESP.MouseButton1Click:Connect(esp)
-buttons.Teleport.MouseButton1Click:Connect(teleport)
-buttons.Speed.MouseButton1Click:Connect(speed)
-buttons.Jump.MouseButton1Click:Connect(jump)
-buttons.Fly.MouseButton1Click:Connect(fly)
-buttons.Gravity.MouseButton1Click:Connect(gravity)
-buttons.Heal.MouseButton1Click:Connect(heal)
+-- Botão funções
+btnAimbot.MouseButton1Click:Connect(function()
+	aimbotOn = not aimbotOn
+	btnAimbot.TextColor3 = aimbotOn and Color3.new(1, 0, 0) or Color3.new(0, 1, 0)
+end)
+
+btnESPBox.MouseButton1Click:Connect(function()
+	espBoxOn = not espBoxOn
+	btnESPBox.TextColor3 = espBoxOn and Color3.new(1, 0, 0) or Color3.new(0, 1, 0)
+	if espBoxOn then
+		updateESPBoxes()
+	else
+		for _, p in pairs(Players:GetPlayers()) do
+			if p.Character and p.Character:FindFirstChild("ESPBox") then
+				p.Character.ESPBox:Destroy()
+			end
+		end
+	end
+end)
+
+btnESPLine.MouseButton1Click:Connect(function()
+	espLineOn = not espLineOn
+	btnESPLine.TextColor3 = espLineOn and Color3.new(1, 0, 0) or Color3.new(0, 1, 0)
+	if not espLineOn then clearLines() end
+end)
+
+btnSpeed.MouseButton1Click:Connect(function()
+	speedOn = not speedOn
+	btnSpeed.TextColor3 = speedOn and Color3.new(1, 0, 0) or Color3.new(0, 1, 0)
+	if not speedOn and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+		LocalPlayer.Character:FindFirstChildOfClass("Humanoid").WalkSpeed = 16
+	end
+end)
